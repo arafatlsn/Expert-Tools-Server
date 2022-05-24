@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors')
 const port = process.env.PORT || 5000;
+const jwt = require('jsonwebtoken');
 
 app.use(cors());
 app.use(express.json());
@@ -15,9 +16,28 @@ async function run(){
 
   try{
 
+    // verify jwt 
+    function verifyJwt(req, res, next){
+      const token = req?.headers?.authorization;
+      const getToken = JSON.parse(token.split(' ')[1])
+
+      if(!getToken){
+        return res.status(403).send({message: 'Unauthorized Access'})
+      }
+      jwt.verify(getToken, process.env.JWT_TOKEN, (error, decoded) => {
+        if(error){
+          return res.status(401).send({message: 'Forbidden Access'})
+        }
+        req.decoded = decoded;
+        next()
+      })
+
+    }
+
     await client.connect();
     const toolCollection = client.db('Expert_Tools').collection('tools');
     const orderCollection = client.db('Expert_Tools').collection('orders');
+    const userCollection = client.db('Expert_Tools').collection('users');
 
     // load all tools 
     app.get('/tools', async(req, res) => {
@@ -26,10 +46,26 @@ async function run(){
     })
 
     // load single tool
-    app.get('/tool', async(req, res) => {
-      const queryId = req.query?.id;
-      const query = {_id: ObjectId(queryId)}
-      const result = await toolCollection.findOne(query);
+    app.get('/tool', verifyJwt, async(req, res) => {
+      const userEmail = req.headers.useremail;
+      const decodedEmail = req.decoded.userEmail;
+      if(userEmail === decodedEmail){
+        const queryId = req.query?.id;
+        const query = {_id: ObjectId(queryId)}
+        const result = await toolCollection.findOne(query);
+        res.send(result)
+      }
+      else{
+        res.status(401).send({message: 'Unauthorized Access'})
+      }
+    })
+
+    // load myorders 
+    app.get('/myorders', async(req, res) => {
+      const userEmail = req.query.userEmail;
+      const query = { email: userEmail }
+      const result = await orderCollection.find(query).toArray();
+      console.log(result)
       res.send(result)
     })
 
@@ -37,6 +73,8 @@ async function run(){
     app.post('/order', async(req, res) => {
       const orderObj = req.body;
       const toolId = req.query.id;
+
+      console.log(orderObj)
 
       const queryId = { _id: ObjectId(toolId) }
       const find = await toolCollection.findOne(queryId)
@@ -55,8 +93,22 @@ async function run(){
       // update quantity 
       const updateTool = await toolCollection.updateOne(find, updateQuantity)
 
-      console.log(updateTool)
       res.send({ pressOrder, updateTool })
+    })
+
+    // sign in jwt 
+    app.get('/users', async(req, res) => {
+      const userEmail = (req.headers?.authorization)?.split(' ')[1];
+      console.log(req.headers.authorization)
+      const find = { email: userEmail };
+      const options = { upsert: true };
+      const userDoc = {
+        $set: { email: userEmail }
+      }
+      const token = jwt.sign({ userEmail }, process.env.JWT_TOKEN, { expiresIn: '1d' })
+      const addUser = await userCollection.updateOne(find, userDoc, options);
+
+      res.send({ token, addUser })
     })
 
   }
