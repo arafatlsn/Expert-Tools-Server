@@ -55,6 +55,7 @@ async function run(){
       // update quantity 
       const updateTool = await toolCollection.updateOne(find, updateQuantity)
 
+      console.log(updateTool)
       res.send({ pressOrder, updateTool })
     })
 
