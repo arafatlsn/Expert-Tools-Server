@@ -145,6 +145,22 @@ async function run(){
 
     })
 
+    // make admin shipped status 
+    app.put('/makeshipped', async(req, res) => {
+
+      const orderId = req.query.orderId;
+      const query = { _id: ObjectId(orderId) };
+
+      const find = await orderCollection.findOne(query);
+      const updatDoc = {
+        $set: { shipped: 'true' }
+      }
+
+      const result = await orderCollection.updateOne(find, updatDoc);
+      res.send(result)
+
+    })
+
     // post review 
     app.post('/addreview', async(req, res) => {
       const review = req.body;
