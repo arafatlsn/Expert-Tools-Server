@@ -38,6 +38,7 @@ async function run(){
     const toolCollection = client.db('Expert_Tools').collection('tools');
     const orderCollection = client.db('Expert_Tools').collection('orders');
     const userCollection = client.db('Expert_Tools').collection('users');
+    const reviewCollection = client.db('Expert_Tools').collection('reviews');
 
     // load all tools 
     app.get('/tools', async(req, res) => {
@@ -109,6 +110,13 @@ async function run(){
       const updateTool = await toolCollection.updateOne(find, updateQuantity)
 
       res.send({ pressOrder, updateTool })
+    })
+
+    // post review 
+    app.post('/addreview', async(req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.insertOne(review);
+      res.send(result)
     })
 
     // sign in jwt 
