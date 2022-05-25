@@ -1,12 +1,13 @@
 const express = require('express');
 const app = express();
+require('dotenv').config();
 const cors = require('cors')
 const port = process.env.PORT || 5000;
 const jwt = require('jsonwebtoken');
+const stripe = require('stripe')(process.env.STRIPE_KEY)
 
 app.use(cors());
 app.use(express.json());
-require('dotenv').config();
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.moy4n.mongodb.net/?retryWrites=true&w=majority`;
@@ -69,6 +70,13 @@ async function run(){
       res.send(result)
     })
 
+    // load all orders 
+    app.get('/allorders', async(req, res) => {
+      const userEmail = req.query.userEmail;
+      const result = await orderCollection.find({}).toArray();
+      res.send(result)
+    })
+
     // cancel order 
     app.delete('/removeorder', async(req, res) => {
       const queryId = req.query.toolId;
@@ -112,6 +120,31 @@ async function run(){
       res.send({ pressOrder, updateTool })
     })
 
+    // load specific order 
+    app.get('/paymentorder', async(req, res) => {
+      const orderId = req.query.toolId;
+      const query = { _id: ObjectId(orderId) };
+      const result = await orderCollection.findOne(query);
+      res.send(result)
+    })
+
+    // update order status
+    app.put('/paymentsuccess', async(req, res) => {
+
+      const transactionId = req.query.trxId;
+      const toolId = req.query.toolId;
+      const toolQuery = { _id: ObjectId(toolId) }
+
+      const find = await orderCollection.findOne(toolQuery);
+      const updateDoc = {
+        $set: { paymentStatus: 'Paid' }
+      }
+
+      const result = await orderCollection.updateOne(find, updateDoc);
+      res.send(result)
+
+    })
+
     // post review 
     app.post('/addreview', async(req, res) => {
       const review = req.body;
@@ -143,8 +176,20 @@ async function run(){
         $set: updateObj
       }
       const result = await userCollection.updateOne(find, updatDoc);
-      console.log(result)
     })
+
+    // payment intent 
+    app.post('/paymentintent', async(req, res) => {
+      const service = req.body;
+      const price = service.price;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+      res.send({clientSecret: paymentIntent.client_secret})
+    });
 
   }
   finally{
