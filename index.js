@@ -65,7 +65,24 @@ async function run(){
       const userEmail = req.query.userEmail;
       const query = { email: userEmail }
       const result = await orderCollection.find(query).toArray();
-      console.log(result)
+      res.send(result)
+    })
+
+    // cancel order 
+    app.delete('/removeorder', async(req, res) => {
+      const queryId = req.query.toolId;
+      const query = { _id: ObjectId(queryId) }
+      const toolId = { _id: ObjectId(req.query.prodId) };
+      const find = await toolCollection.findOne(toolId);
+      const presentQuantity = find.quantity;
+      const cancelQuantity = Number(req.query.orderCancelQantity);
+      const reStockQuantity = presentQuantity + cancelQuantity;
+      const updateDoc = {
+        $set: { quantity: reStockQuantity }
+      }
+
+      const reStock = await toolCollection.updateOne(find, updateDoc)
+      const result = await orderCollection.deleteOne(query);
       res.send(result)
     })
 
@@ -73,8 +90,6 @@ async function run(){
     app.post('/order', async(req, res) => {
       const orderObj = req.body;
       const toolId = req.query.id;
-
-      console.log(orderObj)
 
       const queryId = { _id: ObjectId(toolId) }
       const find = await toolCollection.findOne(queryId)
@@ -99,7 +114,6 @@ async function run(){
     // sign in jwt 
     app.get('/users', async(req, res) => {
       const userEmail = (req.headers?.authorization)?.split(' ')[1];
-      console.log(req.headers.authorization)
       const find = { email: userEmail };
       const options = { upsert: true };
       const userDoc = {
