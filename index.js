@@ -133,6 +133,19 @@ async function run(){
       res.send({ token, addUser })
     })
 
+    // update user profile 
+    app.put('/users', async(req, res) => {
+      const updateObj = req.body;
+      const userEmail = req.headers.authorization.split(' ')[1];
+      
+      const find = await userCollection.findOne({ email: userEmail })
+      const updatDoc = {
+        $set: updateObj
+      }
+      const result = await userCollection.updateOne(find, updatDoc);
+      console.log(result)
+    })
+
   }
   finally{
 
