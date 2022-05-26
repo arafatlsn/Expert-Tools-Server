@@ -194,6 +194,32 @@ async function run(){
       const result = await userCollection.updateOne(find, updatDoc);
     })
 
+    // load all users 
+    app.get('/allusers', async(req, res) => {
+      const result = await userCollection.find({}).toArray();
+      res.send(result);
+    })
+
+    // make admin user
+    app.put('/makeadmin', async(req, res) => {
+      const adminId = req.query.adminId;
+
+      const findQuery = {_id: ObjectId(adminId)};
+      const find = await userCollection.findOne(findQuery);
+      const options = { upsert: true }
+      console.log(adminId)
+
+      const updatDoc = {
+        $set: { role: 'Admin'}
+
+      }
+
+      const result = await userCollection.updateOne(find, updatDoc, options);
+      res.send(result)
+
+
+    })
+
     // payment intent 
     app.post('/paymentintent', async(req, res) => {
       const service = req.body;
