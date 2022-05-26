@@ -69,6 +69,14 @@ async function run(){
       res.send(result)
     })
 
+    // remove tool 
+    app.delete('/removetool', async(req, res) => {
+      const toolId = req.query.toold;
+      const toolQuery = { _id: ObjectId(toolId) }
+      const result = await toolCollection.deleteOne(toolQuery);
+      res.send(result)
+    })
+
     // load myorders 
     app.get('/myorders', async(req, res) => {
       const userEmail = req.query.userEmail;
