@@ -62,6 +62,13 @@ async function run(){
       }
     })
 
+    // post tool 
+    app.post('/postProduct', async(req, res) => {
+      const orderObj = req.body;
+      const result = await toolCollection.insertOne(orderObj);
+      res.send(result)
+    })
+
     // load myorders 
     app.get('/myorders', async(req, res) => {
       const userEmail = req.query.userEmail;
