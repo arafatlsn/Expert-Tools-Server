@@ -43,7 +43,14 @@ async function run(){
 
     // load all tools 
     app.get('/tools', async(req, res) => {
-      const result = (await toolCollection.find().toArray()).reverse();
+      const result = (await toolCollection.find().toArray()).reverse().slice(0, 6);
+      res.send(result);
+    })
+
+    app.get('/alltools', async(req, res) => {
+      const result = (await toolCollection.find().toArray()).slice(0, 6).sort(function(a, b){
+        return Number(a.quantity) - Number(b.quantity)
+      });
       res.send(result);
     })
 
@@ -60,6 +67,34 @@ async function run(){
       else{
         res.status(401).send({message: 'Unauthorized Access'})
       }
+    })
+
+    // verifyJwt
+    app.get('/verify', verifyJwt, async(req, res) => {
+      const userEmail = req.headers.useremail;
+      const decodedEmail = req.decoded.userEmail;
+      if(userEmail !== decodedEmail){
+        res.status(401).send({message: 'Unauthorized Access'})
+      }
+    })
+
+    // verify admin
+    app.get('/verifyadmin', async(req, res) => {
+
+      const emailQuery = { email: req.query.userEmail };
+      const find = await userCollection.findOne(emailQuery);
+
+      if(find?.role === 'Admin'){
+
+        res.send({message: 'Admin'});
+
+      }
+      else{
+
+        res.send({message: 'Not Admin'})
+
+      }
+
     })
 
     // post tool 
@@ -183,6 +218,12 @@ async function run(){
       res.send(result)
     })
 
+    // load all reviews 
+    app.get('/reviews', async(req, res) => {
+      const result = (await reviewCollection.find({}).toArray()).reverse().slice(0, 3)
+      res.send(result)
+    })
+
     // sign in jwt 
     app.get('/users', async(req, res) => {
       const userEmail = (req.headers?.authorization)?.split(' ')[1];
@@ -207,6 +248,7 @@ async function run(){
         $set: updateObj
       }
       const result = await userCollection.updateOne(find, updatDoc);
+      res.send(result)
     })
 
     // load all users 
